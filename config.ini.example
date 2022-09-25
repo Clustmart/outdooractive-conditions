@@ -1,0 +1,47 @@
+#
+# Configuration file for closures.py
+#
+
+[Log]
+File=conditions.log
+# Existing logging levels: CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
+Level=DEBUG
+
+[Database]
+DB_Name=conditions.db
+
+# Add the paramaters if you want to get information via email
+[Email]
+# configure here with email settings from the server where you run the script
+Username=
+Password=
+Email=
+Host=
+Port=
+# add here the email address where you want to receive notifications
+Email_To=#where to send the alerts
+
+# Add the parameters if you want that a Jira ticket should be created
+[Jira]
+API=
+Email=
+API_Token=
+URL=
+ProjectID=
+
+[Action]
+Execute=Delay               # Possible selection: Delay (recommended) or Now
+NewReview=CreateJiraTicket  # Possible selection: CreateJiraTicket, SendEmail
+
+# Only relevant if Execute=Delay
+# Time unit: second
+[Wait]
+Min=1
+Max=3
+
+# Mandatory: Add here the Outdooractive API. 
+# Before usage, read the quidelines: http://developers.outdooractive.com/Overview/Guidelines.html
+# and Outdooractive Terms and Conditions that are described in the Guidelines.
+[Outdooractive]
+Project=
+API=

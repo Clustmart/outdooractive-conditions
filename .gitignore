@@ -1,0 +1,11 @@
+env
+.vscode/
+*.pyc
+.env
+.DS_Store
+*.ini
+conditions.db
+*.bak
+*.log
+*.html
+*.sqbpro
