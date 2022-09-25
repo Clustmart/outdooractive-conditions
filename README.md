@@ -23,7 +23,8 @@ python3 -m pip install -r requirements.txt
 ```
 
 ### Configuration
-Fill in the parameters left blank in config.ini, as described in the file. 
+Rename config.ini. example to config.ini and fill in the parameters left blank, as described in the file. 
+Rename conditions.empty.db to conditions.db
 
 ## Usage
 

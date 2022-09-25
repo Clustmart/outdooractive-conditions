@@ -12,7 +12,7 @@
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
 #
 #####################################################################
-# Version: 0.3.0
+# Version: 0.4.0
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
@@ -28,13 +28,13 @@ from urllib3.util.retry import Retry
 
 # import urllib
 import datetime
-import pandas as pd
 import logging as log
 import os
 from random import randint
 import time
 from jira import JIRA
 import xmltodict
+import sys
 
 # global variables
 today = datetime.date.today().strftime("%Y-%m-%d")
@@ -111,22 +111,34 @@ def execute(query, param=""):
 
 
 #
-# Checks if a record already exists in the tabel
+# Return first record from a SQL query
 #
-def exists(query):
-    log.debug("Exists SQL:" + query)
-    result = (0,)
+def first_row(query):
+    log.debug("Returns first row from SQL:" + query)
+    result = ()
     try:
         cursor.execute(query)
         result = cursor.fetchone()
     except Exception as err:
         print("Query Failed: %s\nError: %s" % (query, str(err)))
     print("Result:", result)
+    return result
+
+
+#
+# Checks if a record already exists in the tabel
+# Returns:
+#   1 - record exists
+#   0 - record doesn't exist
+#
+def exists(query):
+    result = first_row(query)
+    log.debug("Exists SQL result: " + str(result[0]))
     return result[0]
 
 
 #
-#
+# Return map region type and name based on region id
 #
 def get_region(region):
     wait()
@@ -147,7 +159,8 @@ def get_region(region):
 
 
 #
-# read the condition from Outdooractive
+# Read the condition from Outdooractive and assign an empty string to parameters
+# that are not sent in the XML answer.
 #
 def read_condition(condition):
     global c_xml
@@ -187,8 +200,6 @@ def read_condition(condition):
     except:
         c_xml["oois"]["condition"]["riskDescription"] = ""
 
-    winter_activity = c_xml["oois"]["condition"]["winterActivity"]
-
     geometry_description = ""
     for record in c_xml["oois"]["condition"]["regions"]["region"]:
         # print(str(record["@id"]))
@@ -208,6 +219,7 @@ def save_condition():
     processed = "n"
     date_processed = today
     condition_saved = False
+    # check if condition id was already stored in the database
     query = (
         "SELECT EXISTS(SELECT 1 FROM conditions WHERE id='"
         + str(c_xml["oois"]["condition"]["@id"])
@@ -244,10 +256,109 @@ def save_condition():
 
 
 #
+# Checks if the condition was processed
+# Returns:
+#   True - was processed
+#   False - not yet processed
+#
+def processed(query):
+    result = first_row(query)
+    processed = True if result[0] == "y" else False
+    log.debug(
+        "Not processed SQL result: "
+        + str(result[0])
+        + "boolean response: "
+        + str(processed)
+    )
+    return processed
+
+
+#
+#   Sende Email message
+#
+def send_message(From, To, Subject, Attachment):
+    # send email to inform about new rating/review
+    msg = MIMEMultipart()  # create a message
+    # setup the parameters of the message
+    msg["From"] = From
+    msg["To"] = To
+    msg["Subject"] = Subject
+    # add in the message body
+    msg.attach(MIMEText(Attachment, "plain"))
+    # send the message via the server set up earlier.
+    s.send_message(msg)
+
+
+#
+#   Create Jira Ticket
+#
+def create_ticket(Subject, Description):
+    issue_dict = {
+        "project": {"id": config["Jira"]["ProjectID"]},
+        "summary": Subject,
+        "description": Description,
+        "issuetype": {"name": "Task"},
+    }
+    try:
+        new_ticket = jira.create_issue(fields=issue_dict)
+        log.info("Ticket " + str(new_ticket) + " was created.")
+    except Exception as err:
+        log.debug("Creating Jira ticket failed due to: " + str(err))
+        send_message(
+            config["Email"]["Email"],
+            config["Email"]["Email_To"],
+            "[ERROR] creating new Jira ticket: ",
+            "Check application log file.",
+        )
+
+
+#
 #   check if it's a new condition and inform by email and/or creating a Jira ticket
 #
 def execute_condition():
-    print()
+    global config
+    global c_xml
+
+    # was the condition not yet processed?
+    query = (
+        "SELECT processed FROM conditions WHERE id='"
+        + str(c_xml["oois"]["condition"]["@id"])
+        + "'"
+    )
+    if not processed(query):
+        query = (
+            "SELECT status, geometry_description, day_of_inspection, frontendtype, title FROM conditions WHERE id='"
+            + str(c_xml["oois"]["condition"]["@id"])
+            + "'"
+        )
+        result = first_row(query)
+        Subject = "NEW " + result[3] + ": " + result[4] + " STATUS:" + result[0]
+        Description = str(result)
+        if config["Action"]["Action"] == "SendEmail":
+            send_message(
+                config["Email"]["Email"],
+                config["Email"]["Email_To"],
+                Subject,
+                Description,
+            )
+        elif config["Action"]["Action"] == "CreateJiraTicket":
+            create_ticket(Subject, Description)
+        elif config["Action"]["Action"] == "JiraAndSendEmail":
+            send_message(
+                config["Email"]["Email"],
+                config["Email"]["Email_To"],
+                Subject,
+                Description,
+            )
+            create_ticket(Subject, Description)
+        else:
+            sys.exit("Invalid Action->Action: " + config["Action"]["Action"])
+        # mark condition as processed
+        query = (
+            "UPDATE conditions SET processed='y' WHERE id='"
+            + str(c_xml["oois"]["condition"]["@id"])
+            + "'"
+        )
 
 
 def main():

@@ -30,8 +30,10 @@ URL=
 ProjectID=
 
 [Action]
-Execute=Delay               # Possible selection: Delay (recommended) or Now
-NewReview=CreateJiraTicket  # Possible selection: CreateJiraTicket, SendEmail
+Execute=Delay               
+# Possible selection: Delay (recommended) or Now
+Action=SendEmail            
+# Possible selection: CreateJiraTicket, SendEmail or JiraAndSendEmail
 
 # Only relevant if Execute=Delay
 # Time unit: second
