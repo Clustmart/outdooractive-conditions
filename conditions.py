@@ -38,7 +38,6 @@ import sys
 
 # global variables
 today = datetime.date.today().strftime("%Y-%m-%d")
-now = datetime.date.today().strftime("%Y-%m-%d %H:%M")
 c_xml = {}
 geometry_description = ""
 
@@ -361,9 +360,11 @@ def execute_condition():
 
 
 def main():
-    print(str(now) + " [START] conditions.py")
+    print(
+        str(datetime.date.today().strftime("%Y-%m-%d %H:%M")) + " [START] conditions.py"
+    )
     log.info("=======================")
-    log.info("Program start: " + str(now))
+    log.info("Program start: " + str(datetime.date.today().strftime("%Y-%m-%d %H:%M")))
     log.info("=======================")
     url = (
         "https://www.outdooractive.com/api/project/"
@@ -385,7 +386,9 @@ def main():
         if save_condition():
             # execute defined actions
             execute_condition()
-    print(str(now) + " [END] conditions.py")
+    print(
+        str(datetime.date.today().strftime("%Y-%m-%d %H:%M")) + " [END] conditions.py"
+    )
 
 
 if __name__ == "__main__":
