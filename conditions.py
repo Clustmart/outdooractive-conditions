@@ -361,11 +361,14 @@ def execute_condition():
 
 def main():
     print(
-        str(datetime.date.today().strftime("%Y-%m-%d %H:%M")) + " [START] conditions.py"
+        str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
+        + " [START] conditions.py"
     )
-    log.info("=======================")
-    log.info("Program start: " + str(datetime.date.today().strftime("%Y-%m-%d %H:%M")))
-    log.info("=======================")
+    log.info("===============================")
+    log.info(
+        "Program start: " + str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
+    )
+    log.info("===============================")
     url = (
         "https://www.outdooractive.com/api/project/"
         + OA_PROJECT
@@ -387,7 +390,8 @@ def main():
             # execute defined actions
             execute_condition()
     print(
-        str(datetime.date.today().strftime("%Y-%m-%d %H:%M")) + " [END] conditions.py"
+        str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
+        + " [END] conditions.py"
     )
 
 
