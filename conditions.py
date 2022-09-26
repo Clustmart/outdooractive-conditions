@@ -4,15 +4,15 @@
 #   - records it and if not duplicate, informs the destination
 #
 # Process:
-# 1. the closure should be in a specific region (e.g. Sibiu)
-# <region id="33306111" type="district" />
+# 1. the closure should be in a specific region
+# e.g. for Sibiu: <region id="33306111" type="district" />
 # 2. find all closures
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/conditions?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX
 # 3. get information about each of the found closures
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
 #
 #####################################################################
-# Version: 0.4.0
+# Version: 0.4.1
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
@@ -121,7 +121,6 @@ def first_row(query):
         result = cursor.fetchone()
     except Exception as err:
         print("Query Failed: %s\nError: %s" % (query, str(err)))
-    print("Result:", result)
     return result
 
 
@@ -362,6 +361,7 @@ def execute_condition():
 
 
 def main():
+    print(str(now) + " [START] conditions.py")
     log.info("=======================")
     log.info("Program start: " + str(now))
     log.info("=======================")
@@ -385,6 +385,7 @@ def main():
         if save_condition():
             # execute defined actions
             execute_condition()
+    print(str(now) + " [END] conditions.py")
 
 
 if __name__ == "__main__":
