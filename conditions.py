@@ -371,11 +371,11 @@ def list():
     for row in result:
         row_id = row_id + 1
         print(
-            "[%3d]: Title: %s %s URL:%s Processed: [%s]"
+            "[%3d]: %s Title: %s URL:%s Processed: [%s]"
             % (
                 row_id,
-                row[4],
                 row[2],
+                row[4],
                 "https://outdooractiveo.com/en/r/" + str(row[0]),
                 row[5],
             )
