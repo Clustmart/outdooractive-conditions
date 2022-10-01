@@ -12,7 +12,7 @@
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
 #
 #####################################################################
-# Version: 0.4.1
+# Version: 0.4.2
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
