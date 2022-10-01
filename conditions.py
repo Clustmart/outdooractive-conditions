@@ -375,7 +375,7 @@ def list():
             % (
                 row_id,
                 row[4],
-                row[3],
+                row[2],
                 "https://outdooractiveo.com/en/r/" + str(row[0]),
                 row[5],
             )
