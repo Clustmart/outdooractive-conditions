@@ -12,7 +12,7 @@
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
 #
 #####################################################################
-# Version: 0.4.2
+# Version: 0.5.0
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
@@ -359,40 +359,69 @@ def execute_condition():
         )
 
 
+#
+# List all existing condition in the database
+#
+def list():
+    query = "SELECT id, status, date_from, frontendtype, title, processed FROM conditions ORDER BY date_from"
+    execute(query)
+    result = cursor.fetchall()
+    print("id, status, date_from, frontendtype, title, processed")
+    row_id = 0
+    for row in result:
+        row_id = row_id + 1
+        print(
+            "[%3d]: Title: %s %s URL:%s Processed: [%s]"
+            % (
+                row_id,
+                row[4],
+                row[3],
+                "https://outdooractiveo.com/en/r/" + str(row[0]),
+                row[5],
+            )
+        )
+
+
 def main():
-    print(
-        str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
-        + " [START] conditions.py"
-    )
-    log.info("===============================")
-    log.info(
-        "Program start: " + str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
-    )
-    log.info("===============================")
-    url = (
-        "https://www.outdooractive.com/api/project/"
-        + OA_PROJECT
-        + "/conditions?key="
-        + OA_KEY
-    )
-    log.debug("Base URL:" + url)
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1]
+        if cmd == "list":
+            list()
+    else:
+        print(
+            str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
+            + " [START] conditions.py"
+        )
+        log.info("===============================")
+        log.info(
+            "Program start: "
+            + str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
+        )
+        log.info("===============================")
+        url = (
+            "https://www.outdooractive.com/api/project/"
+            + OA_PROJECT
+            + "/conditions?key="
+            + OA_KEY
+        )
+        log.debug("Base URL:" + url)
 
-    # Read all the conditions you have access to through API
-    xml = xmltodict.parse(session.get(url).text)
-    for condition in xml["datalist"]["data"]:
-        condition_id = condition["@id"]
+        # Read all the conditions you have access to through API
+        xml = xmltodict.parse(session.get(url).text)
+        for condition in xml["datalist"]["data"]:
+            condition_id = condition["@id"]
 
-        # collect all information related to the found condition
-        read_condition(condition_id)
+            # collect all information related to the found condition
+            read_condition(condition_id)
 
-        # save the information in the database
-        if save_condition():
-            # execute defined actions
-            execute_condition()
-    print(
-        str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
-        + " [END] conditions.py"
-    )
+            # save the information in the database
+            if save_condition():
+                # execute defined actions
+                execute_condition()
+        print(
+            str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
+            + " [END] conditions.py"
+        )
 
 
 if __name__ == "__main__":
