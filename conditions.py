@@ -12,7 +12,7 @@
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
 #
 #####################################################################
-# Version: 0.5.0
+# Version: 0.5.1
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
@@ -325,7 +325,7 @@ def execute_condition():
     )
     if not processed(query):
         query = (
-            "SELECT status, geometry_description, day_of_inspection, frontendtype, title FROM conditions WHERE id='"
+            "SELECT status, geometry_description, day_of_inspection, frontendtype, title, user_id FROM conditions WHERE id='"
             + str(c_xml["oois"]["condition"]["@id"])
             + "'"
         )
@@ -366,18 +366,19 @@ def list():
     query = "SELECT id, status, date_from, frontendtype, title, processed FROM conditions ORDER BY date_from"
     execute(query)
     result = cursor.fetchall()
-    print("id, status, date_from, frontendtype, title, processed")
+    print("id, status, date_from, frontendtype, title, processed, user_id")
     row_id = 0
     for row in result:
         row_id = row_id + 1
         print(
-            "[%3d]: %s Title: %s URL:%s Processed: [%s]"
+            "[%3d]: %s Title: %s URL:%s Processed: [%s] User:"
             % (
                 row_id,
                 row[2],
                 row[4],
                 "https://outdooractiveo.com/en/r/" + str(row[0]),
                 row[5],
+                "https://outdooractiveo.com/en/r/" + str(row[6]),
             )
         )
 
