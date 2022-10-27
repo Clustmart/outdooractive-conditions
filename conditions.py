@@ -12,16 +12,19 @@
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
 #
 #####################################################################
-# Version: 0.5.1
+# Version: 0.6.2
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
 
 import sqlite3
 import configparser
+from email.utils import formataddr
+from email.message import EmailMessage
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.text import MIMEText
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -39,6 +42,8 @@ import sys
 # global variables
 today = datetime.date.today().strftime("%Y-%m-%d")
 c_xml = {}
+subject = ""
+description = ""
 geometry_description = ""
 
 # Read initialization parameters
@@ -51,8 +56,8 @@ except Exception as err:
 OA_PROJECT = config["Outdooractive"]["Project"]
 OA_KEY = config["Outdooractive"]["API"]
 
+# s = smtplib.SMTP(config["Email"]["Host"] + ":" + config["Email"]["Port"])
 s = smtplib.SMTP_SSL(host=config["Email"]["Host"], port=config["Email"]["Port"])
-# s.starttls()
 s.ehlo()
 s.login(config["Email"]["Email"], config["Email"]["Password"])
 
@@ -272,18 +277,28 @@ def processed(query):
 
 
 #
+# Processes a given closure_id:
+#   - sends email/creates ticket
+#   - sets field processed to "y"
+#
+def process(closure_id):
+    global c_xml
+
+    read_condition(closure_id)
+    execute_condition()
+
+
+#
 #   Sende Email message
 #
-def send_message(From, To, Subject, Attachment):
-    # send email to inform about new rating/review
-    msg = MIMEMultipart()  # create a message
-    # setup the parameters of the message
-    msg["From"] = From
-    msg["To"] = To
+def send_message(Subject, Attachment):
+    global config
+    global s
+    msg = EmailMessage()
+    msg["From"] = formataddr((config["Email"]["Alias"], config["Email"]["Username"]))
+    msg["To"] = 'config["Email"]["Email_To"]'
     msg["Subject"] = Subject
-    # add in the message body
-    msg.attach(MIMEText(Attachment, "plain"))
-    # send the message via the server set up earlier.
+    msg.set_content(Attachment)
     s.send_message(msg)
 
 
@@ -298,7 +313,7 @@ def create_ticket(Subject, Description):
         "issuetype": {"name": "Task"},
     }
     try:
-        new_ticket = jira.create_issue(fields=issue_dict)
+        new_ticket = JIRA.create_issue(fields=issue_dict)
         log.info("Ticket " + str(new_ticket) + " was created.")
     except Exception as err:
         log.debug("Creating Jira ticket failed due to: " + str(err))
@@ -308,6 +323,58 @@ def create_ticket(Subject, Description):
             "[ERROR] creating new Jira ticket: ",
             "Check application log file.",
         )
+
+
+def fill_subject_description():
+    global c_xml
+    global subject
+    global description
+
+    query = (
+        "SELECT status, geometry_description, day_of_inspection, frontendtype, title, user_id FROM conditions WHERE id='"
+        + str(c_xml["oois"]["condition"]["@id"])
+        + "'"
+    )
+    result = first_row(query)
+    # subject = (
+    #     "NEW "
+    #     + result[3]
+    #     + ": \n\r***"
+    #     + result[4]
+    #     + "*** \n\r STATUS:"
+    #     + result[0]
+    #     + "\n\r User:"
+    #     + str(result[5])
+    # )
+    condition_date = str(result[2])
+    subject = (
+        "NEW "
+        + result[3]
+        + ": "
+        + result[4]
+        + " STATUS:"
+        + result[0]
+        + " DATE:"
+        + condition_date[:10]
+    )
+    # description = str(result)
+    description = (
+        "NEW "
+        + result[3]
+        + ": \n\r***"
+        + result[4]
+        + "*** \n\r DATE: "
+        + condition_date[:10]
+        + " STATUS:"
+        + result[0]
+        + "\n\r Condition:"
+        + config["Outdooractive"]["Base_URL"]
+        + str(c_xml["oois"]["condition"]["@id"])
+        + "\n\r ---------------------------------------------------------------------------"
+        + "\n\r User:"
+        + config["Outdooractive"]["Base_URL"]
+        + str(result[5])
+    )
 
 
 #
@@ -324,31 +391,20 @@ def execute_condition():
         + "'"
     )
     if not processed(query):
-        query = (
-            "SELECT status, geometry_description, day_of_inspection, frontendtype, title, user_id FROM conditions WHERE id='"
-            + str(c_xml["oois"]["condition"]["@id"])
-            + "'"
-        )
-        result = first_row(query)
-        Subject = "NEW " + result[3] + ": " + result[4] + " STATUS:" + result[0]
-        Description = str(result)
+        fill_subject_description()
         if config["Action"]["Action"] == "SendEmail":
             send_message(
-                config["Email"]["Email"],
-                config["Email"]["Email_To"],
-                Subject,
-                Description,
+                subject,
+                description,
             )
         elif config["Action"]["Action"] == "CreateJiraTicket":
-            create_ticket(Subject, Description)
+            create_ticket(subject, description)
         elif config["Action"]["Action"] == "JiraAndSendEmail":
             send_message(
-                config["Email"]["Email"],
-                config["Email"]["Email_To"],
-                Subject,
-                Description,
+                subject,
+                description,
             )
-            create_ticket(Subject, Description)
+            create_ticket(subject, description)
         else:
             sys.exit("Invalid Action->Action: " + config["Action"]["Action"])
         # mark condition as processed
@@ -357,6 +413,7 @@ def execute_condition():
             + str(c_xml["oois"]["condition"]["@id"])
             + "'"
         )
+        execute(query)
 
 
 #
@@ -376,9 +433,9 @@ def list():
                 row_id,
                 row[2],
                 row[4],
-                "https://outdooractiveo.com/en/r/" + str(row[0]),
+                config["Outdooractive"]["Base_URL"] + str(row[0]),
                 row[5],
-                "https://outdooractiveo.com/en/r/" + str(row[6]),
+                config["Outdooractive"]["Base_URL"] + str(row[6]),
             )
         )
 
@@ -386,8 +443,25 @@ def list():
 def main():
     if len(sys.argv) > 1:
         cmd = sys.argv[1]
+        if cmd == "-h" or cmd == "help":
+            print("Syntax:")
+            print("Check if a new condition occurs. This is the default call.")
+            print("  python conditions.py")
+            print("List all entries in table conditions")
+            print("  python conditions.py list")
+            print("Process a condition_id")
+            print("  python conditions.py process condition_id")
+            exit()
         if cmd == "list":
             list()
+        if cmd == "process":
+            try:
+                closure_id = sys.argv[2]
+            except Exception as err:
+                print("Error: %s" % str(err))
+                print("Syntax: python conditions.py process condition_id")
+                exit()
+            process(closure_id)
     else:
         print(
             str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
