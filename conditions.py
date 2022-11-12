@@ -1,7 +1,8 @@
 #####################################################################
 # Conditions ('OpenMountainWatch')
-# Reads the conditions (closures) from outdooractive and for each one:
+# 1. Reads the conditions (closures) from outdooractive and for each one:
 #   - records it and if not duplicate, informs the destination
+# 2. Checks all conditions from the database if still active
 #
 # Process:
 # 1. the closure should be in a specific region
@@ -12,7 +13,7 @@
 # https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
 #
 #####################################################################
-# Version: 0.4.1
+# Version: 0.5.0
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
@@ -32,7 +33,8 @@ import logging as log
 import os
 from random import randint
 import time
-from jira import JIRA
+import jira
+# from jira import JIRA
 import xmltodict
 import sys
 
@@ -157,7 +159,7 @@ def get_region(region):
 
 
 #
-# Read the condition from Outdooractive and assign an empty string to parameters
+# Read the condition via Outdooractive API and assign an empty string to parameters
 # that are not sent in the XML answer.
 #
 def read_condition(condition):
@@ -317,12 +319,14 @@ def execute_condition():
     global config
     global c_xml
 
+    log.debug("New condition detected")
     # was the condition not yet processed?
     query = (
         "SELECT processed FROM conditions WHERE id='"
         + str(c_xml["oois"]["condition"]["@id"])
         + "'"
     )
+    log.debug("New condition:"+query)
     if not processed(query):
         query = (
             "SELECT status, geometry_description, day_of_inspection, frontendtype, title FROM conditions WHERE id='"
@@ -330,7 +334,7 @@ def execute_condition():
             + "'"
         )
         result = first_row(query)
-        Subject = "NEW " + result[3] + ": " + result[4] + " STATUS:" + result[0]
+        Subject = "CONDITIONS: NEW " + result[3] + ": " + result[4] + " STATUS:" + result[0]
         Description = str(result)
         if config["Action"]["Action"] == "SendEmail":
             send_message(
@@ -358,6 +362,43 @@ def execute_condition():
             + "'"
         )
 
+# checks status for all saved condition
+def status_stored_conditions():
+    global config
+    global c_xml
+
+    # was the condition not yet processed?
+    query = (
+        "SELECT id, status FROM conditions"
+    )
+    cursor.execute(query)
+    conditions = cursor.fetchall()
+
+    for condition in conditions: 
+        read_condition(condition[0])
+        if (c_xml["oois"]["condition"]["meta"]["workflow"]["@state"] != condition[1]):
+            condition_status_changed()
+
+# if a saved condition has new status then:
+#   1. save the new status
+#   2. trigger an action (e.g. send mail)
+def condition_status_changed():
+    # save nev condition status
+    query = (
+            "UPDATE conditions SET status=? WHERE id=?"
+        ) 
+    param = (c_xml["oois"]["condition"]["meta"]["workflow"]["@state"],c_xml["oois"]["condition"]["@id"])
+    execute(query, param)
+    # send mail
+    Subject = "CONDITIONS: Status was updated " + c_xml["oois"]["condition"]["title"] + " -> " + c_xml["oois"]["condition"]["meta"]["workflow"]["@state"]
+    Description = "Condition: www.outdooractive.ro/ro/r/" + c_xml["oois"]["condition"]["@id"]
+    if config["Action"]["Action"] == "SendEmail":
+        send_message(
+            config["Email"]["Email"],
+            config["Email"]["Email_To"],
+            Subject,
+            Description,
+        )
 
 def main():
     print(
@@ -393,6 +434,7 @@ def main():
         str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M"))
         + " [END] conditions.py"
     )
+    status_stored_conditions()
 
 
 if __name__ == "__main__":
