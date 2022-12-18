@@ -3,3 +3,4 @@ configparser
 pandas
 jira
 xmltodict
+supabase

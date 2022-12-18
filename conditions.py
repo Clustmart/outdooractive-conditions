@@ -8,21 +8,21 @@
 # 1. the closure should be in a specific region
 # e.g. for Sibiu: <region id="33306111" type="district" />
 # 2. find all closures
-# https://www.outdooractive.com/api/project/api-romaniatravel-guide/conditions?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX
+# https://www.outdooractive.com/api/project/api-romaniatravel-guide/conditions?key=<api-key>
 # 3. get information about each of the found closures
-# https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=IR9FPKQ7-EMWGM7FJ-4OSSXRYX&lang=ro
+# https://www.outdooractive.com/api/project/api-romaniatravel-guide/oois/252620006?key=<api-key>&lang=<lang>
 #
 #####################################################################
-# Version: 0.7.1
+# Version: 0.7.2
 # Email: paul.wasicsek@gmail.com
 # Status: dev
 #####################################################################
 
 import sqlite3
 import configparser
-from email.utils import formataddr
-from email.message import EmailMessage
 import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # from email.mime.multipart import MIMEMultipart
 # from email.mime.text import MIMEText
@@ -296,11 +296,11 @@ def process(closure_id):
 def send_message(Subject, Attachment):
     global config
     global s
-    msg = EmailMessage()
+    msg = MIMEMultipart() 
     msg["From"] = formataddr((config["Email"]["Alias"], config["Email"]["Username"]))
     msg["To"] = 'config["Email"]["Email_To"]'
     msg["Subject"] = Subject
-    msg.set_content(Attachment)
+    msg.attach(MIMEText(Attachment, 'plain'))
     s.send_message(msg)
 
 
