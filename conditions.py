@@ -297,8 +297,8 @@ def send_message(Subject, Attachment):
     global config
     global s
     msg = MIMEMultipart() 
-    msg["From"] = formataddr((config["Email"]["Alias"], config["Email"]["Username"]))
-    msg["To"] = 'config["Email"]["Email_To"]'
+    msg["From"] = config["Email"]["Email"]
+    msg["To"] = config["Email"]["Email_To"]
     msg["Subject"] = Subject
     msg.attach(MIMEText(Attachment, 'plain'))
     s.send_message(msg)
